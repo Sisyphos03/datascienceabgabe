@@ -16,7 +16,10 @@ except ModuleNotFoundError:
 try:
     from scipy.special import erfc
 except ModuleNotFoundError:
-    from math import erfc
+    import math
+
+    def erfc(x):
+        return math.erfc(float(x))
 
 # Physikalische Konstanten
 R_GAS = 8.31446261815324  # J/(mol*K)
