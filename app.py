@@ -1,7 +1,22 @@
-import numpy as np
-import plotly.graph_objs as go
 import streamlit as st
-from scipy.special import erfc
+
+try:
+    import numpy as np
+except ModuleNotFoundError:
+    st.error("NumPy ist nicht verfügbar. Bitte installiere die Abhängigkeiten zuerst.")
+    st.stop()
+
+try:
+    import plotly.graph_objects as go
+    PLOTLY_AVAILABLE = True
+except ModuleNotFoundError:
+    go = None
+    PLOTLY_AVAILABLE = False
+
+try:
+    from scipy.special import erfc
+except ModuleNotFoundError:
+    from math import erfc
 
 # Physikalische Konstanten
 R_GAS = 8.31446261815324  # J/(mol*K)
@@ -107,26 +122,31 @@ col2.metric("Charakteristische Zeit τ", f"{tau_years:.2f} Jahre")
 col3.metric("Geometrie", geometry)
 
 # Plot
-fig = go.Figure()
-fig.add_trace(
-    go.Scatter(
-        x=x,
-        y=concentrations,
-        mode="lines",
-        line=dict(color="#1f77b4", width=3),
-        name="Konzentration",
+if PLOTLY_AVAILABLE:
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=concentrations,
+            mode="lines",
+            line=dict(color="#1f77b4", width=3),
+            name="Konzentration",
+        )
     )
-)
-fig.update_layout(
-    title=f"Diffusionsprofil für {mineral} - {selected_element}",
-    xaxis_title="Tiefe (µm)",
-    yaxis_title="Konzentration",
-    template="plotly_white",
-    margin=dict(l=60, r=20, t=70, b=50),
-)
-fig.update_yaxes(range=[0.0, max(1.6, Cs * 1.1)])
+    fig.update_layout(
+        title=f"Diffusionsprofil für {mineral} - {selected_element}",
+        xaxis_title="Tiefe (µm)",
+        yaxis_title="Konzentration",
+        template="plotly_white",
+        margin=dict(l=60, r=20, t=70, b=50),
+    )
+    fig.update_yaxes(range=[0.0, max(1.6, Cs * 1.1)])
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    import pandas as pd
 
-st.plotly_chart(fig, use_container_width=True)
+    chart_data = pd.DataFrame({"Tiefe (µm)": x, "Konzentration": concentrations})
+    st.line_chart(chart_data.set_index("Tiefe (µm)"))
 
 st.markdown(
     "---\n"
