@@ -19,7 +19,10 @@ except ModuleNotFoundError:
     import math
 
     def erfc(x):
-        return math.erfc(float(x))
+        values = np.asarray(x, dtype=float)
+        if np.isscalar(x):
+            return math.erfc(float(values))
+        return np.vectorize(math.erfc, otypes=[float])(values)
 
 # Physikalische Konstanten
 R_GAS = 8.31446261815324  # J/(mol*K)
