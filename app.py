@@ -1,5 +1,5 @@
 import numpy as np
-import plotly.graph_objects as go
+import plotly.graph_objs as go
 import streamlit as st
 from scipy.special import erfc
 
@@ -21,134 +21,115 @@ DATABASE = {
     },
 }
 
-# App-Konfiguration
+# App-Header
 st.set_page_config(
-    page_title="Diffusionsprofil-Modellierung",
+    page_title="Diffusionsprofil-Modeling",
     page_icon="🧪",
     layout="wide",
 )
-
 st.title("High-Level Diffusionsprofil-Modellierung")
 st.markdown(
-    "Diese App berechnet diffusive Konzentrationsprofile in Mineralen nach der 2. Fickschen "
-    "Gesetzmäßigkeit. Sie unterstützt einen halbunendlichen Raum und eine kugelförmige Geometrie."
+    "Eine interaktive Streamlit-App zur Modellierung von Diffusionsprofilen in Mineralen "
+    "mit praxisnahen geochemischen Parametern und analytischen Lösungen."
 )
 
-# Sidebar: Modell und Parameter
+# Sidebar: Geometrie-Auswahl
 st.sidebar.header("Modellparameter")
 geometry = st.sidebar.selectbox(
     "Geometrie wählen",
     ["Halbunendlicher Raum", "Sphärisches Mineral/Kugel"],
 )
 
+# Sidebar: Mineralspezifische Daten und Elementauswahl
 mineral = st.sidebar.selectbox("Mineral", list(DATABASE.keys()))
 selected_element = st.sidebar.selectbox("Element", list(DATABASE[mineral].keys()))
 parameter = DATABASE[mineral][selected_element]
 
-st.sidebar.subheader("Thermische Bedingungen")
+# Sidebar: Temperatur und andere Parameter
+st.sidebar.subheader("Umgebungsbedingungen")
 T_celsius = st.sidebar.slider("Temperatur (°C)", min_value=600, max_value=1200, value=900, step=25)
 T_kelvin = T_celsius + 273.15
 
-st.sidebar.subheader("Diffusionsbedingungen")
+st.sidebar.subheader("Diffusionsparameter")
 t = st.sidebar.slider("Zeit (Jahre)", min_value=1.0, max_value=100.0, value=25.0, step=1.0)
 Cs = st.sidebar.slider("Randkonzentration Cs", min_value=0.5, max_value=1.5, value=1.0, step=0.05)
 C0 = st.sidebar.slider("Anfangskonzentration C0", min_value=0.0, max_value=0.5, value=0.1, step=0.01)
 
-st.sidebar.markdown("---")
-st.sidebar.markdown(
-    f"**Ausgewählter Parameter:**\n"
-    f"- Mineral: {mineral}\n"
-    f"- Element: {selected_element}\n"
-    f"- D0: {parameter['D0']:.1e} m²/s\n"
-    f"- EA: {parameter['EA']:.0f} kJ/mol"
-)
-
-# Geometrische und numerische Einstellungen
+# Physikalische Parameter
 radius_um = 100.0
 x_max_um = 100.0
-x_um = np.linspace(0.0, x_max_um, 301)
-x_m = x_um * 1e-6
+x = np.linspace(0, x_max_um, 301)
+x_m = x * 1e-6
 
 # Arrhenius-Berechnung
 D0 = parameter["D0"]
-EA = parameter["EA"] * 1_000.0
+EA = parameter["EA"] * 1000.0
 D = D0 * np.exp(-EA / (R_GAS * T_kelvin))
 
 # Charakteristische Diffusionszeit
-X_m = x_max_um * 1e-6
-if D > 0.0:
-    tau_seconds = X_m ** 2 / D
+if D > 0:
+    tau_seconds = (x_max_um * 1e-6) ** 2 / D
 else:
     tau_seconds = np.inf
 tau_years = tau_seconds / (3600.0 * 24.0 * 365.25)
 
-# Profilfunktionen
-
-def profile_half_space(x, t_s, D, Cs, C0):
-    z = x / (2.0 * np.sqrt(D * t_s))
-    return C0 + (Cs - C0) * erfc(z)
+# Konzentrationsprofile
+def profile_half_space(x_m, t_s, D, Cs, C0):
+    argument = x_m / (2.0 * np.sqrt(D * t_s))
+    return C0 + (Cs - C0) * erfc(argument)
 
 
 def profile_sphere(x_um, t_s, D, Cs, C0, radius_um, n_terms=30):
     r = x_um / radius_um
-    r = np.clip(r, 0.0, 1.0)
-    a = radius_um * 1e-6
-    prefactor = 2.0 * (Cs - C0)
+    r = np.clip(r, 0, 1)
     profile = np.zeros_like(r)
-
     for n in range(1, n_terms + 1):
-        lambda_n = np.pi * (2.0 * n - 1.0) / 2.0
-        exponential = np.exp(-lambda_n ** 2 * D * t_s / a ** 2)
-        sine = np.sin(lambda_n * r)
-        term = ((-1.0) ** (n + 1)) * sine / lambda_n * exponential
-        profile += term
-
-    profile = C0 + prefactor * profile
-    profile = np.clip(profile, min(C0, Cs), max(C0, Cs))
+        lambda_n = np.pi * (2 * n - 1) / 2.0
+        term = ((-1) ** (n + 1) / lambda_n) * np.sin(lambda_n * r)
+        decay = np.exp(-lambda_n ** 2 * D * t_s / (radius_um * 1e-6) ** 2)
+        profile += term * decay
+    profile = C0 + 2.0 * (Cs - C0) * profile
     return profile
 
-# Zeit in Sekunden
+# Berechnung
 t_seconds = t * 365.25 * 24.0 * 3600.0
 
-# Konzentrationsprofil berechnen
 if geometry == "Halbunendlicher Raum":
     concentrations = profile_half_space(x_m, t_seconds, D, Cs, C0)
 else:
-    concentrations = profile_sphere(x_um, t_seconds, D, Cs, C0, radius_um)
+    concentrations = profile_sphere(x, t_seconds, D, Cs, C0, radius_um)
 
-# KPI-Anzeige
+# KPI-Leiste
 st.subheader("Kinetische KPI")
 col1, col2, col3 = st.columns([1, 1, 1])
 col1.metric("Diffusionskoeffizient D", f"{D:.3e} m²/s")
 col2.metric("Charakteristische Zeit τ", f"{tau_years:.2f} Jahre")
-col3.metric("Tiefe X", f"{x_max_um:.0f} µm")
+col3.metric("Geometrie", geometry)
 
 # Plot
-fig = go.Figure(
-    data=[
-        go.Scatter(
-            x=x_um,
-            y=concentrations,
-            mode="lines",
-            line=dict(color="#1f77b4", width=3),
-            name="Konzentration",
-        )
-    ]
+fig = go.Figure()
+fig.add_trace(
+    go.Scatter(
+        x=x,
+        y=concentrations,
+        mode="lines",
+        line=dict(color="#1f77b4", width=3),
+        name="Konzentration",
+    )
 )
 fig.update_layout(
-    title=f"Diffusionsprofil ({geometry}) für {mineral} - {selected_element}",
+    title=f"Diffusionsprofil für {mineral} - {selected_element}",
     xaxis_title="Tiefe (µm)",
     yaxis_title="Konzentration",
     template="plotly_white",
     margin=dict(l=60, r=20, t=70, b=50),
 )
-fig.update_yaxes(range=[0.0, 1.6])
+fig.update_yaxes(range=[0.0, max(1.6, Cs * 1.1)])
 
 st.plotly_chart(fig, use_container_width=True)
 
 st.markdown(
     "---\n"
-    "**Hinweis:** Die Berechnung verwendet die erweiterte Arrhenius-Gleichung und analytische "
-    "Lösungen für den halbunendlichen Raum sowie eine kugelförmige Geometrie. Die Kugellösung "
-    "wurde aus einer Fourier-Reihe mit 30 Termen angenähert."
+    "**Erläuterung:** Die Berechnung basiert auf analytischen Lösungen für den halbunendlichen Raum und eine kugelförmige Geometrie. "
+    "Für die Kugel wird eine Fourier-Reihe mit 30 Termen verwendet, um ein qualitativ stabiles Profil zu erzeugen."
 )
