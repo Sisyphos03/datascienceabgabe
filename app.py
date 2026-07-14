@@ -93,13 +93,14 @@ T_kelvin = T_celsius + 273.15
 # Diffusionsparameter
 st.sidebar.subheader("Diffusionsparameter")
 
-# NEU: logarithmische Zeit in Millionen Jahren
+# Zeitsteuerung in Millionen Jahren mit logarithmischem Skalierungsbereich
 log_t_myr = st.sidebar.slider(
-    "Zeit (Mio. Jahre, logarithmisch)",
+    "Zeit (Mio. Jahre)",
     min_value=-3.0,
     max_value=2.0,
     value=0.0,
-    step=0.05
+    step=0.05,
+    help="Logarithmisch: 0.001 bis 100 Mio. Jahre"
 )
 
 t_myr = 10 ** log_t_myr
@@ -107,8 +108,8 @@ t_myr = 10 ** log_t_myr
 # Umrechnung in Jahre für die Berechnung
 t = t_myr * 1_000_000
 
-st.sidebar.info(
-    f"Aktuelle Zeit: {t_myr:.3g} Mio. Jahre"
+st.sidebar.caption(
+    f"Aktuell gewählt: {t_myr:.3g} Mio. Jahre"
 )
 
 Cs = st.sidebar.slider(
