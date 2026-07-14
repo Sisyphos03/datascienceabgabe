@@ -296,6 +296,8 @@ if PLOTLY_AVAILABLE:
             f"{mineral} - {selected_element} "
             f"| t = {t_myr:.3g} Mio. Jahre"
         ),
+        xaxis_title="Tiefe von der Oberfläche (µm)",
+        yaxis_title="Konzentration (relativ)",
         template="plotly_white",
         margin=dict(
             l=90,
@@ -342,9 +344,9 @@ else:
     )
 
     st.line_chart(
-        chart_data.set_index(
-            "Tiefe von der Oberfläche (µm)"
-        )
+        chart_data,
+        x="Tiefe von der Oberfläche (µm)",
+        y="Konzentration (relativ)"
     )
 
 

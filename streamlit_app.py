@@ -141,6 +141,8 @@ if PLOTLY_AVAILABLE:
     )
     fig.update_layout(
         title=f"Diffusionsprofil für {mineral} - {selected_element}",
+        xaxis_title="Tiefe von der Oberfläche (µm)",
+        yaxis_title="Konzentration (relativ)",
         template="plotly_white",
         margin=dict(l=60, r=20, t=70, b=50),
     )
@@ -160,7 +162,11 @@ else:
     chart_data = pd.DataFrame(
         {"Tiefe von der Oberfläche (µm)": x, "Konzentration (relativ)": concentrations}
     )
-    st.line_chart(chart_data.set_index("Tiefe von der Oberfläche (µm)"))
+    st.line_chart(
+        chart_data,
+        x="Tiefe von der Oberfläche (µm)",
+        y="Konzentration (relativ)",
+    )
 
 st.markdown(
     "---\n"
