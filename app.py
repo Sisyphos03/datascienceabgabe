@@ -124,7 +124,7 @@ else:
 st.subheader("Kinetische KPI")
 col1, col2, col3 = st.columns([1, 1, 1])
 col1.metric("Diffusionskoeffizient D", f"{D:.3e} m²/s")
-col2.metric("Charakteristische Zeit τ", f"{tau_years:.2f} Jahre")
+col2.metric("Charakteristische Zeit τ", f"{tau_years / 1_000_000:.2f} Mio. Jahre")
 col3.metric("Geometrie", geometry)
 
 # Plot
