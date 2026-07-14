@@ -72,7 +72,26 @@ T_celsius = st.sidebar.slider("Temperatur (°C)", min_value=600, max_value=1200,
 T_kelvin = T_celsius + 273.15
 
 st.sidebar.subheader("Diffusionsparameter")
-t = st.sidebar.slider("Zeit (Jahre)", min_value=1.0, max_value=100_000_000.0, value=25.0, step=1_000.0)
+
+time_options = {
+    "0.001 Mio. Jahre": 0.001,
+    "0.01 Mio. Jahre": 0.01,
+    "0.1 Mio. Jahre": 0.1,
+    "1 Mio. Jahre": 1.0,
+    "10 Mio. Jahre": 10.0,
+    "100 Mio. Jahre": 100.0,
+}
+
+selected_time_label = st.sidebar.selectbox(
+    "Zeit",
+    list(time_options.keys()),
+    index=3,
+)
+t_myr = time_options[selected_time_label]
+t = t_myr * 1_000_000
+
+st.sidebar.caption(f"Aktuell gewählt: {t_myr:.3g} Mio. Jahre")
+
 Cs = st.sidebar.slider("Randkonzentration Cs", min_value=0.5, max_value=1.5, value=1.0, step=0.05)
 C0 = st.sidebar.slider("Anfangskonzentration C0", min_value=0.0, max_value=0.5, value=0.1, step=0.01)
 

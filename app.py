@@ -93,17 +93,22 @@ T_kelvin = T_celsius + 273.15
 # Diffusionsparameter
 st.sidebar.subheader("Diffusionsparameter")
 
-# Zeitsteuerung in Millionen Jahren mit logarithmischem Skalierungsbereich
-log_t_myr = st.sidebar.slider(
-    "Zeit (Mio. Jahre)",
-    min_value=-3.0,
-    max_value=2.0,
-    value=0.0,
-    step=0.05,
-    help="Logarithmisch: 0.001 bis 100 Mio. Jahre"
-)
+# Zeitsteuerung als einfache Auswahl geologischer Zeitstufen
+time_options = {
+    "0.001 Mio. Jahre": 0.001,
+    "0.01 Mio. Jahre": 0.01,
+    "0.1 Mio. Jahre": 0.1,
+    "1 Mio. Jahre": 1.0,
+    "10 Mio. Jahre": 10.0,
+    "100 Mio. Jahre": 100.0,
+}
 
-t_myr = 10 ** log_t_myr
+selected_time_label = st.sidebar.selectbox(
+    "Zeit",
+    list(time_options.keys()),
+    index=3,
+)
+t_myr = time_options[selected_time_label]
 
 # Umrechnung in Jahre für die Berechnung
 t = t_myr * 1_000_000
