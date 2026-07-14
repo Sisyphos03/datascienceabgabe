@@ -48,6 +48,7 @@ st.set_page_config(
     page_icon="🧪",
     layout="wide",
 )
+
 st.title("High-Level Diffusionsprofil-Modellierung")
 st.markdown(
     "Eine interaktive Streamlit-App zur Modellierung von Diffusionsprofilen in Mineralen "
@@ -56,114 +57,301 @@ st.markdown(
 
 # Sidebar: Geometrie-Auswahl
 st.sidebar.header("Modellparameter")
+
 geometry = st.sidebar.selectbox(
     "Geometrie wählen",
     ["Halbunendlicher Raum", "Sphärisches Mineral/Kugel"],
 )
 
-# Sidebar: Mineralspezifische Daten und Elementauswahl
-mineral = st.sidebar.selectbox("Mineral", list(DATABASE.keys()))
-selected_element = st.sidebar.selectbox("Element", list(DATABASE[mineral].keys()))
+# Mineral und Element
+mineral = st.sidebar.selectbox(
+    "Mineral",
+    list(DATABASE.keys())
+)
+
+selected_element = st.sidebar.selectbox(
+    "Element",
+    list(DATABASE[mineral].keys())
+)
+
 parameter = DATABASE[mineral][selected_element]
 
-# Sidebar: Temperatur und andere Parameter
+# Temperatur
 st.sidebar.subheader("Umgebungsbedingungen")
-T_celsius = st.sidebar.slider("Temperatur (°C)", min_value=600, max_value=1200, value=900, step=25)
+
+T_celsius = st.sidebar.slider(
+    "Temperatur (°C)",
+    min_value=600,
+    max_value=1200,
+    value=900,
+    step=25
+)
+
 T_kelvin = T_celsius + 273.15
 
-st.sidebar.subheader("Diffusionsparameter")
-t = st.sidebar.slider("Zeit (Jahre)", min_value=1.0, max_value=100_000_000.0, value=25.0, step=1_000.0)
-Cs = st.sidebar.slider("Randkonzentration Cs", min_value=0.5, max_value=1.5, value=1.0, step=0.05)
-C0 = st.sidebar.slider("Anfangskonzentration C0", min_value=0.0, max_value=0.5, value=0.1, step=0.01)
 
-# Physikalische Parameter
+# Diffusionsparameter
+st.sidebar.subheader("Diffusionsparameter")
+
+# NEU: logarithmische Zeit in Millionen Jahren
+log_t_myr = st.sidebar.slider(
+    "Zeit (Mio. Jahre, logarithmisch)",
+    min_value=-3.0,
+    max_value=2.0,
+    value=0.0,
+    step=0.05
+)
+
+t_myr = 10 ** log_t_myr
+
+# Umrechnung in Jahre für die Berechnung
+t = t_myr * 1_000_000
+
+st.sidebar.info(
+    f"Aktuelle Zeit: {t_myr:.3g} Mio. Jahre"
+)
+
+Cs = st.sidebar.slider(
+    "Randkonzentration Cs",
+    min_value=0.5,
+    max_value=1.5,
+    value=1.0,
+    step=0.05
+)
+
+C0 = st.sidebar.slider(
+    "Anfangskonzentration C0",
+    min_value=0.0,
+    max_value=0.5,
+    value=0.1,
+    step=0.01
+)
+
+
+# Geometrie
 radius_um = 100.0
 x_max_um = 100.0
+
 x = np.linspace(0, x_max_um, 301)
 x_m = x * 1e-6
 
-# Arrhenius-Berechnung
+
+# Arrhenius
 D0 = parameter["D0"]
 EA = parameter["EA"] * 1000.0
-D = D0 * np.exp(-EA / (R_GAS * T_kelvin))
+
+D = D0 * np.exp(
+    -EA / (R_GAS * T_kelvin)
+)
+
 
 # Charakteristische Diffusionszeit
+
 if D > 0:
     tau_seconds = (x_max_um * 1e-6) ** 2 / D
 else:
     tau_seconds = np.inf
+
 tau_years = tau_seconds / (3600.0 * 24.0 * 365.25)
 
+
 # Konzentrationsprofile
+
 def profile_half_space(x_m, t_s, D, Cs, C0):
-    argument = x_m / (2.0 * np.sqrt(D * t_s))
+
+    argument = x_m / (
+        2.0 * np.sqrt(D * t_s)
+    )
+
     return C0 + (Cs - C0) * erfc(argument)
 
 
-def profile_sphere(x_um, t_s, D, Cs, C0, radius_um, n_terms=30):
+
+def profile_sphere(
+    x_um,
+    t_s,
+    D,
+    Cs,
+    C0,
+    radius_um,
+    n_terms=30
+):
+
     r = x_um / radius_um
     r = np.clip(r, 0, 1)
+
     profile = np.zeros_like(r)
+
     for n in range(1, n_terms + 1):
-        lambda_n = np.pi * (2 * n - 1) / 2.0
-        term = ((-1) ** (n + 1) / lambda_n) * np.sin(lambda_n * r)
-        decay = np.exp(-lambda_n ** 2 * D * t_s / (radius_um * 1e-6) ** 2)
+
+        lambda_n = np.pi * (2*n - 1) / 2.0
+
+        term = (
+            (-1)**(n+1)
+            / lambda_n
+            * np.sin(lambda_n*r)
+        )
+
+        decay = np.exp(
+            -lambda_n**2
+            * D
+            * t_s
+            / (radius_um*1e-6)**2
+        )
+
         profile += term * decay
-    profile = C0 + 2.0 * (Cs - C0) * profile
+
+
+    profile = C0 + 2.0*(Cs-C0)*profile
+
     return profile
 
+
+
+# Zeit in Sekunden
+
+t_seconds = (
+    t
+    * 365.25
+    * 24
+    * 3600
+)
+
+
 # Berechnung
-t_seconds = t * 365.25 * 24.0 * 3600.0
 
 if geometry == "Halbunendlicher Raum":
-    concentrations = profile_half_space(x_m, t_seconds, D, Cs, C0)
-else:
-    concentrations = profile_sphere(x, t_seconds, D, Cs, C0, radius_um)
 
-# KPI-Leiste
+    concentrations = profile_half_space(
+        x_m,
+        t_seconds,
+        D,
+        Cs,
+        C0
+    )
+
+else:
+
+    concentrations = profile_sphere(
+        x,
+        t_seconds,
+        D,
+        Cs,
+        C0,
+        radius_um
+    )
+
+
+# KPI
+
 st.subheader("Kinetische KPI")
-col1, col2, col3 = st.columns([1, 1, 1])
-col1.metric("Diffusionskoeffizient D", f"{D:.3e} m²/s")
-col2.metric("Charakteristische Zeit τ", f"{tau_years / 1_000_000:.2f} Mio. Jahre")
-col3.metric("Geometrie", geometry)
+
+col1, col2, col3, col4 = st.columns(4)
+
+
+col1.metric(
+    "Diffusionskoeffizient D",
+    f"{D:.3e} m²/s"
+)
+
+col2.metric(
+    "Charakteristische Zeit τ",
+    f"{tau_years / 1_000_000:.2f} Mio. Jahre"
+)
+
+col3.metric(
+    "Geometrie",
+    geometry
+)
+
+col4.metric(
+    "Modellzeit",
+    f"{t_myr:.3g} Mio. Jahre"
+)
+
 
 # Plot
+
 if PLOTLY_AVAILABLE:
+
     fig = go.Figure()
+
     fig.add_trace(
         go.Scatter(
             x=x,
             y=concentrations,
             mode="lines",
-            line=dict(color="#1f77b4", width=3),
-            name="Konzentration",
+            line=dict(
+                color="#1f77b4",
+                width=3
+            ),
+            name="Konzentration"
         )
     )
+
+
     fig.update_layout(
-        title=f"Diffusionsprofil für {mineral} - {selected_element}",
+        title=(
+            f"Diffusionsprofil für "
+            f"{mineral} - {selected_element} "
+            f"| t = {t_myr:.3g} Mio. Jahre"
+        ),
         template="plotly_white",
-        margin=dict(l=60, r=20, t=70, b=50),
+        margin=dict(
+            l=90,
+            r=30,
+            t=80,
+            b=90
+        )
     )
+
+
     fig.update_xaxes(
-        title=dict(text="Tiefe von der Oberfläche (µm)", standoff=10),
-        automargin=True,
+        title_text="Tiefe von der Oberfläche (µm)",
+        title_standoff=15,
+        automargin=True
     )
+
+
     fig.update_yaxes(
-        title=dict(text="Konzentration (relativ)", standoff=10),
-        range=[0.0, max(1.6, Cs * 1.1)],
-        automargin=True,
+        title_text="Konzentration (relativ)",
+        title_standoff=15,
+        range=[
+            0.0,
+            max(1.6, Cs*1.1)
+        ],
+        automargin=True
     )
-    st.plotly_chart(fig, use_container_width=True)
+
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
+
+
 else:
+
     import pandas as pd
 
     chart_data = pd.DataFrame(
-        {"Tiefe von der Oberfläche (µm)": x, "Konzentration (relativ)": concentrations}
+        {
+            "Tiefe von der Oberfläche (µm)": x,
+            "Konzentration (relativ)": concentrations
+        }
     )
-    st.line_chart(chart_data.set_index("Tiefe von der Oberfläche (µm)"))
+
+    st.line_chart(
+        chart_data.set_index(
+            "Tiefe von der Oberfläche (µm)"
+        )
+    )
+
 
 st.markdown(
     "---\n"
-    "**Erläuterung:** Die Berechnung basiert auf analytischen Lösungen für den halbunendlichen Raum und eine kugelförmige Geometrie. "
-    "Für die Kugel wird eine Fourier-Reihe mit 30 Termen verwendet, um ein qualitativ stabiles Profil zu erzeugen."
+    "**Erläuterung:** Die Berechnung basiert auf analytischen Lösungen "
+    "für den halbunendlichen Raum und eine kugelförmige Geometrie. "
+    "Für die Kugel wird eine Fourier-Reihe mit 30 Termen verwendet, "
+    "um ein qualitativ stabiles Profil zu erzeugen."
 )
