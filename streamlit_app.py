@@ -72,7 +72,7 @@ T_celsius = st.sidebar.slider("Temperatur (°C)", min_value=600, max_value=1200,
 T_kelvin = T_celsius + 273.15
 
 st.sidebar.subheader("Diffusionsparameter")
-t = st.sidebar.slider("Zeit (Jahre)", min_value=1.0, max_value=100.0, value=25.0, step=1.0)
+t = st.sidebar.slider("Zeit (Jahre)", min_value=1.0, max_value=100_000_000.0, value=25.0, step=1_000.0)
 Cs = st.sidebar.slider("Randkonzentration Cs", min_value=0.5, max_value=1.5, value=1.0, step=0.05)
 C0 = st.sidebar.slider("Anfangskonzentration C0", min_value=0.0, max_value=0.5, value=0.1, step=0.01)
 
@@ -141,8 +141,8 @@ if PLOTLY_AVAILABLE:
     )
     fig.update_layout(
         title=f"Diffusionsprofil für {mineral} - {selected_element}",
-        xaxis_title="Tiefe (µm)",
-        yaxis_title="Konzentration",
+        xaxis_title="Tiefe von der Oberfläche (µm)",
+        yaxis_title="Konzentration (relativ)",
         template="plotly_white",
         margin=dict(l=60, r=20, t=70, b=50),
     )
@@ -151,8 +151,10 @@ if PLOTLY_AVAILABLE:
 else:
     import pandas as pd
 
-    chart_data = pd.DataFrame({"Tiefe (µm)": x, "Konzentration": concentrations})
-    st.line_chart(chart_data.set_index("Tiefe (µm)"))
+    chart_data = pd.DataFrame(
+        {"Tiefe von der Oberfläche (µm)": x, "Konzentration (relativ)": concentrations}
+    )
+    st.line_chart(chart_data.set_index("Tiefe von der Oberfläche (µm)"))
 
 st.markdown(
     "---\n"
