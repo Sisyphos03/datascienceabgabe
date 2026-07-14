@@ -128,7 +128,7 @@ st.sidebar.caption(
 )
 
 Cs = st.sidebar.slider(
-    "Randkonzentration Cs",
+    "Randkonzentration Cₛ",
     min_value=0.5,
     max_value=1.5,
     value=1.0,
@@ -136,7 +136,7 @@ Cs = st.sidebar.slider(
 )
 
 C0 = st.sidebar.slider(
-    "Anfangskonzentration C0",
+    "Anfangskonzentration C₀",
     min_value=0.0,
     max_value=0.5,
     value=0.1,

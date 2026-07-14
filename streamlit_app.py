@@ -103,8 +103,8 @@ t = t_myr * 1_000_000
 
 st.sidebar.caption(f"Aktuell gewählt: {t_myr:.3g} Mio. Jahre")
 
-Cs = st.sidebar.slider("Randkonzentration Cs", min_value=0.5, max_value=1.5, value=1.0, step=0.05)
-C0 = st.sidebar.slider("Anfangskonzentration C0", min_value=0.0, max_value=0.5, value=0.1, step=0.01)
+Cs = st.sidebar.slider("Randkonzentration Cₛ", min_value=0.5, max_value=1.5, value=1.0, step=0.05)
+C0 = st.sidebar.slider("Anfangskonzentration C₀", min_value=0.0, max_value=0.5, value=0.1, step=0.01)
 
 # Physikalische Parameter
 radius_um = 100.0
