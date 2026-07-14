@@ -141,12 +141,18 @@ if PLOTLY_AVAILABLE:
     )
     fig.update_layout(
         title=f"Diffusionsprofil für {mineral} - {selected_element}",
-        xaxis_title="Tiefe von der Oberfläche (µm)",
-        yaxis_title="Konzentration (relativ)",
         template="plotly_white",
         margin=dict(l=60, r=20, t=70, b=50),
     )
-    fig.update_yaxes(range=[0.0, max(1.6, Cs * 1.1)])
+    fig.update_xaxes(
+        title=dict(text="Tiefe von der Oberfläche (µm)", standoff=10),
+        automargin=True,
+    )
+    fig.update_yaxes(
+        title=dict(text="Konzentration (relativ)", standoff=10),
+        range=[0.0, max(1.6, Cs * 1.1)],
+        automargin=True,
+    )
     st.plotly_chart(fig, use_container_width=True)
 else:
     import pandas as pd
