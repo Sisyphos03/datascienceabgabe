@@ -73,7 +73,7 @@ T_kelvin = T_celsius + 273.15
 
 st.sidebar.subheader("Diffusionsparameter")
 
-time_options = {
+preset_options = {
     "0.001 Mio. Jahre": 0.001,
     "0.01 Mio. Jahre": 0.01,
     "0.1 Mio. Jahre": 0.1,
@@ -82,12 +82,23 @@ time_options = {
     "100 Mio. Jahre": 100.0,
 }
 
-selected_time_label = st.sidebar.selectbox(
-    "Zeit",
-    list(time_options.keys()),
+selected_preset_label = st.sidebar.selectbox(
+    "Zeitskala wählen",
+    list(preset_options.keys()),
     index=3,
 )
-t_myr = time_options[selected_time_label]
+
+preset_value = preset_options[selected_preset_label]
+
+t_myr = st.sidebar.slider(
+    "Zeit fein anpassen (Mio. Jahre)",
+    min_value=0.001,
+    max_value=100.0,
+    value=preset_value,
+    step=0.001,
+    format="%.3f",
+)
+
 t = t_myr * 1_000_000
 
 st.sidebar.caption(f"Aktuell gewählt: {t_myr:.3g} Mio. Jahre")
